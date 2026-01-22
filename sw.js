@@ -2,8 +2,8 @@ const CACHE_NAME = 'molscreen-v1';
 const urlsToCache = [
   './index.html',
   // აქ ჩაამატე შენი ვიდეოს ლინკები, რომ ბრაუზერმა დაიმახსოვროს
-  'https://drive.google.com/file/d/1HRWjM1OjrRD_XXZ44nHWxTsXYeGhGNkf/view?usp=sharing',
-  'https://drive.google.com/file/d/1jyJ9Lr7dv77I7m3ogym5ZR4oZeT3WnsI/view?usp=sharing'
+  'https://www.dropbox.com/scl/fi/15wx1gsxro91i7dnv42wz/KFC.mp4?rlkey=e6sn7glqwf2hl4bsqb1eve0f0&st=79wwhznc&dl=0',
+  'https://www.dropbox.com/scl/fi/15wx1gsxro91i7dnv42wz/KFC.mp4?rlkey=e6sn7glqwf2hl4bsqb1eve0f0&st=15baqphh&dl=0'
 ];
 
 self.addEventListener('install', event => {
