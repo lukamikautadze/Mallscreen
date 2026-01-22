@@ -2,57 +2,71 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <title>Molscreen Pro Player</title>
+    <title>Molscreen Smart Player</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        video { width: 100vw; height: 100vh; object-fit: cover; }
+        video { 
+            position: absolute; top: 0; left: 0; 
+            width: 100vw; height: 100vh; object-fit: cover; 
+            display: none; /* თავიდან ორივე დამალულია */
+        }
+        .active { display: block; } /* მხოლოდ აქტიური ჩანს */
     </style>
 </head>
 <body>
-    <video id="player" autoplay muted playsinline></video>
+    <video id="player1" muted playsinline></video>
+    <video id="player2" muted playsinline></video>
 
 <script>
-    const videoElement = document.getElementById('player');
-    
-    // შენი ვიდეოების ლინკები (დარწმუნდი, რომ ბოლოში raw=1 წერია)
     const playlist = [
-        "https://www.dropbox.com/scl/fi/fdey9od9eii498lsanwt6/Video-lyriced-by-kirkitaa7-music-lyricedits-k...-7594790642086087943.mp4?rlkey=5f5bv46xlacc7wrr0rgjqlnis&st=ooubh7e6&raw=1",
+        "https://www.dropbox.com/scl/fi/fdey9od9eii498lsanwt6/Video-lyriced-by-kirkitaa7-music-lyricedits-k...-7594790642086087943.mp4?rlkey=5f5bv46xlacc7wrr0rgjqlnis&st=qf4xxszk&raw=1",
         "https://www.dropbox.com/scl/fi/15wx1gsxro91i7dnv42wz/KFC.mp4?rlkey=e6sn7glqwf2hl4bsqb1eve0f0&st=0eu7cz52&raw=1"
     ];
-    
-    let index = 0;
 
-    function playNext() {
-        if (index >= playlist.length) index = 0;
-        
-        console.log("Playing:", playlist[index]);
-        videoElement.src = playlist[index];
-        
-        // ვიდეოს ჩატვირთვის მცდელობა
-        videoElement.load(); 
-        
-        videoElement.play().catch(error => {
-            console.log("Play error, retrying...", error);
-            setTimeout(playNext, 1000); // თუ გაჭედა, 1 წამში ისევ სცადოს
-        });
-        
-        index++;
+    let currentIndex = 0;
+    const players = [document.getElementById('player1'), document.getElementById('player2')];
+    let currentPlayerIndex = 0;
+
+    function getNextIndex() {
+        return (currentIndex + 1) % playlist.length;
     }
 
-    // როცა ვიდეო ბოლომდე მივა
-    videoElement.onended = () => {
-        console.log("Video ended, moving to next...");
-        playNext();
-    };
+    function initPlayer(player, url) {
+        player.src = url;
+        player.load();
+    }
 
-    // თუ ვიდეოს ჩატვირთვისას შეცდომა მოხდა (მაგ. ინტერნეტის წყვეტა)
-    videoElement.onerror = () => {
-        console.log("Source error, skipping to next...");
-        setTimeout(playNext, 2000);
-    };
+    function switchPlayers() {
+        const currentPlayer = players[currentPlayerIndex];
+        const nextPlayerIndex = (currentPlayerIndex + 1) % 2;
+        const nextPlayer = players[nextPlayerIndex];
 
-    // პირველი გაშვება
-    playNext();
+        // 1. ვაჩვენებთ შემდეგს და ვრთავთ
+        nextPlayer.classList.add('active');
+        nextPlayer.play().catch(e => console.log(e));
+
+        // 2. ვმალავთ და ვაჩერებთ ძველს
+        currentPlayer.classList.remove('active');
+        currentPlayer.pause();
+
+        // 3. ვამზადებთ ძველ პლეიერს მომავალი ვიდეოსთვის (Preload)
+        currentIndex = getNextIndex();
+        const futureVideoUrl = playlist[getNextIndex()];
+        initPlayer(currentPlayer, futureVideoUrl);
+
+        currentPlayerIndex = nextPlayerIndex;
+    }
+
+    // როცა რომელიმე ვიდეო მთავრდება, გადავრთოთ
+    players[0].onended = switchPlayers;
+    players[1].onended = switchPlayers;
+
+    // პირველი გაშვება: ვტვირთავთ პირველს პირველ პლეიერში, მეორეს - მეორეში
+    initPlayer(players[0], playlist[0]);
+    initPlayer(players[1], playlist[1]);
+
+    players[0].classList.add('active');
+    players[0].play();
 </script>
 </body>
 </html>
