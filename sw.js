@@ -1,4 +1,4 @@
-const CACHE_NAME = 'molscreen-v4.7'; // ვერსია შევცვალე, რომ ტელევიზორმა განაახლოს
+const CACHE_NAME = 'molscreen-v5.0';
 const ASSETS = [
   './index.html',
   'https://www.dropbox.com/scl/fi/p3jnpcnq5zq0i00y423lj/.mp4?rlkey=c87u2tmn8amluocftqtn792cl&st=d1wh4tew&raw=1',
@@ -8,36 +8,18 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('ვიდეოები იწერება...');
-      // ვიყენებთ map-ს, რომ სათითაოდ სცადოს ფაილები. 
-      // თუ ერთი გაფუჭდა, სხვები მაინც ჩაიწეროს.
+      // სათითაოდ ვამატებთ, რომ თუ ერთი გაჭედა, სხვა ჩაიწეროს
       return Promise.all(
-        ASSETS.map(url => {
-          return cache.add(new Request(url, { mode: 'no-cors' })).catch(err => 
-            console.error('ვერ ჩაიწერა ფაილი:', url, err)
-          );
-        })
-      );
-    })
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        ASSETS.map(url => fetch(url, {mode: 'no-cors'}).then(res => cache.put(url, res)))
       );
     })
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // ეს ნაწილი აუცილებელია Dropbox-ის სწორი "სტრიმინგისთვის"
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    caches.match(event.request).then((res) => {
+      return res || fetch(event.request);
     })
   );
-})
+});
