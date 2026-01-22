@@ -1,27 +1,21 @@
-const CACHE_NAME = 'molscreen-v5.1';
+const CACHE_NAME = 'molscreen-v5.2'; // Changed version to force update
 const ASSETS = [
   './index.html',
   'https://www.dropbox.com/scl/fi/p3jnpcnq5zq0i00y423lj/.mp4?rlkey=c87u2tmn8amluocftqtn792cl&st=d1wh4tew&raw=1',
   'https://www.dropbox.com/scl/fi/v2bx6rptchmopoyj2wg84/.mp4?rlkey=a8d5xdh97r1k0b5y1p06mmvkr&st=05anps8s&raw=1'
 ];
 
-// ინსტალაციისას ვიწერთ ყველაფერს
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return Promise.all(
-        ASSETS.map(url => 
-          fetch(url, {mode: 'no-cors'}) // no-cors აუცილებელია Dropbox-ისთვის
-            .then(response => cache.put(url, response))
-            .catch(err => console.log('Error caching:', url))
-        )
-      );
+      // Use cache.addAll — it handles the fetching and storing correctly
+      // It will only cache if the response is 'OK' (status 200)
+      return cache.addAll(ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// აქტივაციისას ვშლით ძველ ნაგავს
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -30,13 +24,14 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Important: Take control of the page immediately
+  return self.clients.claim();
 });
 
-// ინტერნეტის გათიშვისას ფაილის ამოღება ქეშიდან
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // თუ ქეშშია, ვაბრუნებთ ქეშიდან, თუ არა - მივდივართ ინტერნეტში
+      // Return from cache, otherwise fetch from network
       return cachedResponse || fetch(event.request);
     })
   );
