@@ -1,4 +1,4 @@
-const CACHE_NAME = 'molscreen-cache-v3';
+const CACHE_NAME = 'molscreen-cache-v2.4';
 const urlsToCache = [
   './index.html',
   'https://www.dropbox.com/scl/fi/p3jnpcnq5zq0i00y423lj/.mp4?rlkey=c87u2tmn8amluocftqtn792cl&st=d1wh4tew&raw=1',
