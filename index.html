@@ -4,31 +4,23 @@
     <meta charset="UTF-8">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
-        video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
+        video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0; transition: opacity 0.5s; }
         .active { opacity: 1; z-index: 10; }
-        
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; color: white; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-family: sans-serif; cursor: pointer;
-        }
-        .start-btn { padding: 20px 40px; border: 2px solid white; font-size: 24px; border-radius: 10px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
+        .start-btn { padding: 20px 40px; border: 2px solid white; font-size: 24px; border-radius: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="overlay" onclick="startApp()">
         <div class="start-btn">გაშვება / Press OK</div>
-        <p>დააჭირეთ OK ღილაკს</p>
     </div>
 
-    <video id="v1" muted playsinline crossorigin="anonymous"></video>
-    <video id="v2" muted playsinline crossorigin="anonymous"></video>
+    <video id="v1" muted playsinline preload="auto"></video>
+    <video id="v2" muted playsinline preload="auto"></video>
 
 <script>
-    // სერვის ვორკერის რეგისტრაცია
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+        navigator.serviceWorker.register('sw.js');
     }
 
     const playlist = [
@@ -39,68 +31,42 @@
     let currentIndex = 0;
     const players = [document.getElementById('v1'), document.getElementById('v2')];
     let activeIdx = 0;
-    let started = false;
 
     function startApp() {
-        if (started) return;
-        started = true;
         document.getElementById('overlay').style.display = 'none';
-        init();
+        
+        // პირველი ვიდეოს გაშვება
+        players[activeIdx].src = playlist[0];
+        players[activeIdx].classList.add('active');
+        players[activeIdx].play();
+        
+        // მეორე ვიდეოს წინასწარ მომზადება
+        players[1 - activeIdx].src = playlist[1];
     }
 
-    window.addEventListener('keydown', function(e) {
-        if (e.keyCode === 13 || e.keyCode === 1) startApp(); 
-    });
-
-    // ოფლაინ რეჟიმისთვის მორგებული ჩამტვირთავი
-    async function loadVideoToMemory(url) {
-        try {
-            // ჯერ ვამოწმებთ ქეშში თუ გვაქვს (sw.js-ის მიერ შენახული)
-            const cache = await caches.open('molscreen-v4.7');
-            const cachedResponse = await cache.match(url);
-            
-            const response = cachedResponse || await fetch(url);
-            const blob = await response.blob();
-            return URL.createObjectURL(blob);
-        } catch (e) {
-            console.log("ჩატვირთვის პრობლემა, ვიყენებთ პირდაპირ ლინკს", e);
-            return url;
-        }
-    }
-
-    async function swap() {
+    function swap() {
         const current = players[activeIdx];
         activeIdx = 1 - activeIdx;
         const next = players[activeIdx];
 
-        next.play().catch(err => console.log("Play failed", err));
+        next.play();
         next.classList.add('active');
         current.classList.remove('active');
 
+        // შემდეგი ვიდეოს მომზადება
         currentIndex = (currentIndex + 1) % playlist.length;
+        const nextTarget = (currentIndex + 1) % playlist.length;
         
-        // შემდეგი ვიდეოს მომზადება მეხსიერებაში
-        const blobUrl = await loadVideoToMemory(playlist[currentIndex]);
         setTimeout(() => {
-            current.src = blobUrl;
+            current.src = playlist[nextTarget];
             current.load();
-        }, 500); 
+        }, 1000);
     }
 
-    async function init() {
-        // პირველი ორი ვიდეოს მომზადება
-        const url0 = await loadVideoToMemory(playlist[0]);
-        const url1 = await loadVideoToMemory(playlist[1]);
+    players[0].onended = swap;
+    players[1].onended = swap;
 
-        players[0].src = url0;
-        players[1].src = url1;
-
-        players[0].classList.add('active');
-        players[0].play();
-        
-        players[0].onended = swap;
-        players[1].onended = swap;
-    }
+    window.addEventListener('keydown', (e) => { if(e.keyCode === 13) startApp(); });
 </script>
 </body>
 </html>
