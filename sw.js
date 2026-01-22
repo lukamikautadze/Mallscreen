@@ -1,4 +1,4 @@
-const CACHE_NAME = 'molscreen-v4.5';
+const CACHE_NAME = 'molscreen-v4.6';
 const ASSETS = [
   './index.html',
   // აქ ჩაამატე შენი Dropbox-ის პირდაპირი ლინკები (dl=1)
