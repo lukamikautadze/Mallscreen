@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <title>Molscreen Offline Player</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        video { width: 100vw; height: 100vh; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <video id="player" autoplay muted playsinline></video>
+
+<script>
+    // 1. რეგისტრაცია Service Worker-ის (ოფლაინ რეჟიმისთვის)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+
+    const videoElement = document.getElementById('player');
+    const playlist = [
+        "https://your-direct-link.com/video1.mp4", 
+        "https://your-direct-link.com/video2.mp4"
+    ];
+    let index = 0;
+
+    function playVideo() {
+        if (index >= playlist.length) index = 0;
+        videoElement.src = playlist[index];
+        videoElement.play();
+        index++;
+    }
+
+    videoElement.onended = playVideo;
+    playVideo();
+</script>
+</body>
+</html>
