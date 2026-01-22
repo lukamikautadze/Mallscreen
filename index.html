@@ -2,7 +2,7 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <title>Molscreen Offline Player</title>
+    <title>Molscreen Pro Player</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
         video { width: 100vw; height: 100vh; object-fit: cover; }
@@ -12,27 +12,47 @@
     <video id="player" autoplay muted playsinline></video>
 
 <script>
-    // 1. რეგისტრაცია Service Worker-ის (ოფლაინ რეჟიმისთვის)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-
     const videoElement = document.getElementById('player');
+    
+    // შენი ვიდეოების ლინკები (დარწმუნდი, რომ ბოლოში raw=1 წერია)
     const playlist = [
-        "https://www.dropbox.com/scl/fi/fdey9od9eii498lsanwt6/Video-lyriced-by-kirkitaa7-music-lyricedits-k...-7594790642086087943.mp4?rlkey=5f5bv46xlacc7wrr0rgjqlnis&st=ooubh7e6&raw=1", 
-        "https://www.dropbox.com/scl/fi/15wx1gsxro91i7dnv42wz/KFC.mp4?rlkey=e6sn7glqwf2hl4bsqb1eve0f0&st=15baqphh&raw=1"
+        "https://www.dropbox.com/scl/fi/fdey9od9eii498lsanwt6/Video-lyriced-by-kirkitaa7-music-lyricedits-k...-7594790642086087943.mp4?rlkey=5f5bv46xlacc7wrr0rgjqlnis&st=ooubh7e6&raw=1",
+        "https://www.dropbox.com/scl/fi/fdey9od9eii498lsanwt6/Video-lyriced-by-kirkitaa7-music-lyricedits-k...-7594790642086087943.mp4?rlkey=5f5bv46xlacc7wrr0rgjqlnis&st=jf3xf1po&raw=1"
     ];
+    
     let index = 0;
 
-    function playVideo() {
+    function playNext() {
         if (index >= playlist.length) index = 0;
+        
+        console.log("Playing:", playlist[index]);
         videoElement.src = playlist[index];
-        videoElement.play();
+        
+        // ვიდეოს ჩატვირთვის მცდელობა
+        videoElement.load(); 
+        
+        videoElement.play().catch(error => {
+            console.log("Play error, retrying...", error);
+            setTimeout(playNext, 1000); // თუ გაჭედა, 1 წამში ისევ სცადოს
+        });
+        
         index++;
     }
 
-    videoElement.onended = playVideo;
-    playVideo();
+    // როცა ვიდეო ბოლომდე მივა
+    videoElement.onended = () => {
+        console.log("Video ended, moving to next...");
+        playNext();
+    };
+
+    // თუ ვიდეოს ჩატვირთვისას შეცდომა მოხდა (მაგ. ინტერნეტის წყვეტა)
+    videoElement.onerror = () => {
+        console.log("Source error, skipping to next...");
+        setTimeout(playNext, 2000);
+    };
+
+    // პირველი გაშვება
+    playNext();
 </script>
 </body>
 </html>
