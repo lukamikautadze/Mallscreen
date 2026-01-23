@@ -5,62 +5,38 @@
     <title>Molscreen Player</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; display: none; }
-        .active { display: block; }
+        video { width: 100vw; height: 100vh; object-fit: cover; }
     </style>
 </head>
 <body>
-    <video id="player1" muted playsinline></video>
-    <video id="player2" muted playsinline></video>
+    <video id="player" autoplay muted playsinline></video>
 
 <script>
+    // Service Worker-ის რეგისტრაცია
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=5');
+        navigator.serviceWorker.register('./sw.js?v=10');
     }
 
+    const videoElement = document.getElementById('player');
     const playlist = [
         "https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video1.mp4",
         "https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video2.mp4"
     ];
-
-    const players = [document.getElementById('player1'), document.getElementById('player2')];
-    let currentPlayerIndex = 0;
-    let currentVideoIndex = 0;
-
-    function initPlayer(player, url) {
-        player.src = url;
-        player.load();
-    }
-
-    function switchPlayers() {
-        const nextPlayerIndex = (currentPlayerIndex + 1) % 2;
-        const currentPlayer = players[currentPlayerIndex];
-        const nextPlayer = players[nextPlayerIndex];
-
-        currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-        
-        nextPlayer.classList.add('active');
-        nextPlayer.play().then(() => {
-            currentPlayer.classList.remove('active');
-            currentPlayer.pause();
-            
-            const nextVideoUrl = playlist[(currentVideoIndex + 1) % playlist.length];
-            initPlayer(currentPlayer, nextVideoUrl);
-            currentPlayerIndex = nextPlayerIndex;
-        }).catch(e => {
-            console.error(e);
-            setTimeout(switchPlayers, 2000);
-        });
-    }
-
-    players[0].onended = switchPlayers;
-    players[1].onended = switchPlayers;
-
-    initPlayer(players[0], playlist[0]);
-    initPlayer(players[1], playlist[1]);
     
-    players[0].classList.add('active');
-    players[0].play();
+    let index = 0;
+
+    function playNext() {
+        if (index >= playlist.length) index = 0;
+        videoElement.src = playlist[index];
+        videoElement.load();
+        videoElement.play().catch(e => console.log("Play error:", e));
+        index++;
+    }
+
+    videoElement.onended = playNext;
+
+    // პირველი გაშვება
+    playNext();
 </script>
 </body>
 </html>
