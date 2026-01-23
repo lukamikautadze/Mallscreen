@@ -1,4 +1,4 @@
-const CACHE_NAME = 'molscreen-v6.0';
+const CACHE_NAME = 'molscreen-v6.2';
 
 // List of assets to cache for offline use
 const ASSETS = [
