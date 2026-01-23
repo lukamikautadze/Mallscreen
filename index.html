@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Molscreen Player - Offline Ready Indicator</title>
+    <title>Molscreen Player - Offline Ready</title>
     <style>
         body, html {
             margin: 0;
@@ -34,27 +34,27 @@
         .hidden { opacity: 0; z-index: 1; }
         .visible { opacity: 1; z-index: 2; }
 
-        /* სტატუსის და ქეშირების ინდიკატორი */
         #status-overlay {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
             color: #fff;
             font-family: sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             z-index: 100;
             pointer-events: none;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         .spinner {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border: 2px solid #fff;
             border-bottom-color: transparent;
             border-radius: 50%;
@@ -68,7 +68,8 @@
         }
 
         .ready {
-            color: #4CAF50; /* მწვანე როცა მზადაა */
+            color: #4CAF50;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -104,7 +105,6 @@
             if (isReady) {
                 syncIcon.style.display = 'none';
                 statusText.classList.add('ready');
-                // 5 წამში ვმალავთ შეტყობინებას რომ ეკრანი სუფთა იყოს
                 setTimeout(() => {
                     statusOverlay.style.opacity = '0';
                     statusOverlay.style.transition = 'opacity 2s';
@@ -116,7 +116,6 @@
             }
         }
 
-        // ამოწმებს ყველა ვიდეო ქეშირებულია თუ არა
         async function checkOfflineReadiness() {
             try {
                 const cache = await caches.open(CACHE_NAME);
@@ -124,7 +123,7 @@
                 const cachedUrls = keys.map(request => request.url);
                 
                 const allCached = playlist.every(url => {
-                    const normalizedUrl = new URL(url).href;
+                    const normalizedUrl = new URL(url, window.location.href).href;
                     return cachedUrls.includes(normalizedUrl);
                 });
 
@@ -203,20 +202,14 @@
             updateStatus("სისტემა იწყებს მუშაობას...");
             await setupVideo(videos[0], 0, true);
             videos[0].play();
-
             setupVideo(videos[1], 1);
-
             videos[0].onended = swapVideos;
             videos[1].onended = swapVideos;
-
             setTimeout(checkOfflineReadiness, 3000);
         }
 
         window.onload = initPlayer;
 
-        setInterval(checkOfflineReadiness, 600000);
-
-        // Service Worker რეგისტრაცია
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
