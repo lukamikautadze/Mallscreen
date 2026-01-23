@@ -11,17 +11,21 @@
 <body>
     <div id="overlay" onclick="startApp()">დააჭირე OK / Press OK</div>
     <video id="player" muted playsinline></video>
+
 <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
     }
+
     // ლინკები შევცვალე "dl.dropboxusercontent.com"-ით, რაც პირდაპირია და CORS-ს არ აბრაზებს
     const playlist = [
         "https://dl.dropboxusercontent.com/scl/fi/p3jnpcnq5zq0i00y423lj/video1.mp4?rlkey=c87u2tmn8amluocftqtn792cl",
         "https://dl.dropboxusercontent.com/scl/fi/v2bx6rptchmopoyj2wg84/video2.mp4?rlkey=a8d5xdh97r1k0b5y1p06mmvkr"
     ];
+
     let current = 0;
     const player = document.getElementById('player');
+
     function startApp() {
         document.getElementById('overlay').style.display = 'none';
         playVideo();
@@ -30,11 +34,14 @@
     function playVideo() {
         player.src = playlist[current];
         player.play().catch(e => console.log("Error:", e));
+        
         player.onended = () => {
             current = (current + 1) % playlist.length;
             playVideo();
         };
     }
+
     window.addEventListener('keydown', (e) => { if(e.keyCode === 13) startApp(); });
 </script>
 </body>
+</html>
