@@ -3,8 +3,8 @@ const CACHE_NAME = 'molscreen-v6.0';
 // List of assets to cache for offline use
 const ASSETS = [
   './index.html',
-  'გოჩიტ.mp4',
-  'კფცცც.mp4'
+  'https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video1.mp4',
+  'https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video2.mp4'
 ];
 
 // 1. Installation: Download all assets into the cache
