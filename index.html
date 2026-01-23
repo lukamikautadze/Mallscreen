@@ -1,42 +1,83 @@
-<!DOCTYPE html>
-<html lang="ka">
-<head>
-    <meta charset="UTF-8">
-    <title>Molscreen Player</title>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        video { width: 100vw; height: 100vh; object-fit: cover; }
-    </style>
+<meta charset="UTF-8">
+<style>
+body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
+        video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0; transition: opacity 0.5s; }
+        .active { opacity: 1; z-index: 10; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
+        .start-btn { padding: 20px 40px; border: 2px solid white; font-size: 24px; border-radius: 10px; cursor: pointer; }
+        video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 100; display: flex; align-items: center; justify-content: center; font-size: 30px; font-family: sans-serif; cursor: pointer; }
+</style>
 </head>
 <body>
-    <video id="player" autoplay muted playsinline></video>
+    <div id="overlay" onclick="startApp()">
+        <div class="start-btn">გაშვება / Press OK</div>
+    </div>
+
+    <video id="v1" muted playsinline preload="auto"></video>
+    <video id="v2" muted playsinline preload="auto"></video>
+    <div id="overlay" onclick="startApp()">დააჭირე OK / Press OK</div>
+    <video id="player" muted playsinline></video>
 
 <script>
-    // Service Worker-ის რეგისტრაცია
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=10');
-    }
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('sw.js');
+}
 
-    const videoElement = document.getElementById('player');
-    const playlist = [
-        "https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video1.mp4",
-        "https://raw.githubusercontent.com/lukamikautadze/Mallscreen/main/video2.mp4"
-    ];
-    
-    let index = 0;
+    // ლინკები შევცვალე "dl.dropboxusercontent.com"-ით, რაც პირდაპირია 
+const playlist = [
+        "https://dl.dropboxusercontent.com/scl/fi/p3jnpcnq5zq0i00y423lj/video1.mp4?rlkey=c87u2tmn8amluocftqtn792cl",
+        "https://dl.dropboxusercontent.com/scl/fi/v2bx6rptchmopoyj2wg84/video2.mp4?rlkey=a8d5xdh97r1k0b5y1p06mmvkr"
+];
 
-    function playNext() {
-        if (index >= playlist.length) index = 0;
-        videoElement.src = playlist[index];
-        videoElement.load();
-        videoElement.play().catch(e => console.log("Play error:", e));
-        index++;
-    }
+    let currentIndex = 0;
+    const players = [document.getElementById('v1'), document.getElementById('v2')];
+    let activeIdx = 0;
+    let current = 0;
+    const player = document.getElementById('player');
 
-    videoElement.onended = playNext;
+function startApp() {
+document.getElementById('overlay').style.display = 'none';
+        
+        // პირველი ვიდეოს გაშვება
+        players[activeIdx].src = playlist[0];
+        players[activeIdx].classList.add('active');
+        players[activeIdx].play();
+        
+        // მეორე ვიდეოს წინასწარ მომზადება
+        players[1 - activeIdx].src = playlist[1];
+        playVideo();
+}
 
-    // პირველი გაშვება
-    playNext();
+    function swap() {
+        const current = players[activeIdx];
+        activeIdx = 1 - activeIdx;
+        const next = players[activeIdx];
+
+        next.play();
+        next.classList.add('active');
+        current.classList.remove('active');
+
+        // შემდეგი ვიდეოს მომზადება
+        currentIndex = (currentIndex + 1) % playlist.length;
+        const nextTarget = (currentIndex + 1) % playlist.length;
+    function playVideo() {
+        player.src = playlist[current];
+        player.play().catch(e => console.log("Error:", e));
+
+        setTimeout(() => {
+            current.src = playlist[nextTarget];
+            current.load();
+        }, 1000);
+        player.onended = () => {
+            current = (current + 1) % playlist.length;
+            playVideo();
+        };
+}
+
+    players[0].onended = swap;
+    players[1].onended = swap;
+
+window.addEventListener('keydown', (e) => { if(e.keyCode === 13) startApp(); });
 </script>
 </body>
-</html>
