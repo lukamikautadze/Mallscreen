@@ -15,6 +15,12 @@ self.addEventListener('install', (event) => {
 
 // Intercept requests for offline access
 self.addEventListener('fetch', (event) => {
+    // Skip cross-origin requests like Dropbox videos in the Service Worker
+    // to prevent Range Request issues on Smart TVs
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
