@@ -1,4 +1,4 @@
-const CACHE_NAME = 'molscreen-v2';
+const CACHE_NAME = 'molscreen-v135';
 const ASSETS_TO_CACHE = [
   './',
   './index.html'
