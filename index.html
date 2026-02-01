@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Molscreen Player - Offline Ready</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <title>Molscreen Player</title>
     <style>
-        body, html {
+        html,body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            background: #000;
             cursor: none;
         }
 
@@ -31,144 +31,70 @@
             transition: opacity 0.6s ease-in-out;
         }
 
-        .hidden { opacity: 0; z-index: 1; }
+        .hidden { opacity: 0; z-index: 1; pointer-events: none; }
         .visible { opacity: 1; z-index: 2; }
-
-        #status-overlay {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 8px;
-            color: #fff;
-            font-family: sans-serif;
-            font-size: 13px;
-            z-index: 100;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fff;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            display: inline-block;
-            animation: rotation 1s linear infinite;
-        }
-
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .ready {
-            color: #4CAF50;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
-
     <div id="player-container">
         <video id="video1" class="visible" autoplay muted playsinline></video>
         <video id="video2" class="hidden" muted playsinline></video>
     </div>
 
-    <div id="status-overlay">
-        <span id="sync-icon" class="spinner"></span>
-        <span id="status-text">ინიციალიზაცია...</span>
-    </div>
-
     <script>
+        // Playlist - put your uploaded video URLs here
         const playlist = [
             "https://www.dropbox.com/scl/fi/v2bx6rptchmopoyj2wg84/.mp4?rlkey=a8d5xdh97r1k0b5y1p06mmvkr&st=zzu8cfyl&raw=1",
             "https://www.dropbox.com/scl/fi/p3jnpcnq5zq0i00y423lj/.mp4?rlkey=c87u2tmn8amluocftqtn792cl&st=nedpyc82&raw=1"
         ];
 
+        const CACHE_NAME = 'molscreen-v2';
         let currentIndex = 0;
         const videos = [document.getElementById('video1'), document.getElementById('video2')];
         let activeVideoIndex = 0;
-        const CACHE_NAME = 'molscreen-v2';
 
-        const statusText = document.getElementById('status-text');
-        const syncIcon = document.getElementById('sync-icon');
-        const statusOverlay = document.getElementById('status-overlay');
+        // Keep track of blob URLs we create so we can revoke them later and avoid leaks
+        const blobUrlMap = new Map();
 
-        function updateStatus(msg, isReady = false) {
-            statusText.innerText = msg;
-            if (isReady) {
-                syncIcon.style.display = 'none';
-                statusText.classList.add('ready');
-                setTimeout(() => {
-                    statusOverlay.style.opacity = '0';
-                    statusOverlay.style.transition = 'opacity 2s';
-                }, 5000);
-            } else {
-                syncIcon.style.display = 'inline-block';
-                statusOverlay.style.opacity = '1';
-                statusText.classList.remove('ready');
-            }
-        }
-
-        async function checkOfflineReadiness() {
+        async function cacheAndGetBlobUrl(url) {
             try {
                 const cache = await caches.open(CACHE_NAME);
-                const keys = await cache.keys();
-                const cachedUrls = keys.map(request => request.url);
-                
-                const allCached = playlist.every(url => {
-                    const normalizedUrl = new URL(url, window.location.href).href;
-                    return cachedUrls.includes(normalizedUrl);
-                });
+                // Normalize request so cache keys match network requests
+                const request = new Request(url, {mode: 'cors', credentials: 'omit'});
+                const cached = await cache.match(request);
+                if (cached) {
+                    const blob = await cached.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    blobUrlMap.set(url, blobUrl);
+                    return blobUrl;
+                }
 
-                if (allCached) {
-                    updateStatus("სისტემა მზადაა Offline რეჟიმისთვის ✅", true);
-                } else {
-                    updateStatus("ვიდეოები იწერება მეხსიერებაში...");
+                // Not cached — fetch from network and cache fully
+                const response = await fetch(request);
+                if (response && (response.status === 200 || response.status === 206)) {
+                    // Clone because we need one copy for cache and one to read as blob
+                    await cache.put(request, response.clone());
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    blobUrlMap.set(url, blobUrl);
+                    return blobUrl;
                 }
             } catch (e) {
-                console.log("Readiness check error", e);
+                console.warn('cacheAndGetBlobUrl failed for', url, e);
             }
-        }
-
-        async function getBestSource(url) {
-            try {
-                const cache = await caches.open(CACHE_NAME);
-                const cachedResponse = await cache.match(url);
-                
-                if (cachedResponse) {
-                    const blob = await cachedResponse.blob();
-                    return URL.createObjectURL(blob);
-                }
-                
-                fetch(url).then(res => {
-                    if (res.ok) {
-                        cache.put(url, res);
-                        checkOfflineReadiness();
-                    }
-                }).catch(() => {});
-                
-            } catch (e) {
-                console.error("Cache error", e);
-            }
+            // Fallback to original URL if anything goes wrong
             return url;
         }
 
         async function setupVideo(videoElement, index, isInitial = false) {
             const url = playlist[index];
-            if (isInitial) {
-                videoElement.src = url;
-            } else {
-                const source = await getBestSource(url);
-                videoElement.src = source;
-            }
+            // Try to get blob URL from cache (or fetch+cache)
+            const source = await cacheAndGetBlobUrl(url);
+            videoElement.src = source;
             videoElement.load();
+            if (isInitial) {
+                try { await videoElement.play(); } catch (e) { /* autoplay blocked */ }
+            }
         }
 
         async function swapVideos() {
@@ -176,45 +102,85 @@
             activeVideoIndex = 1 - activeVideoIndex;
             const nextVideo = videos[activeVideoIndex];
 
+            // ensure nextVideo has the next index's source
+            const nextIndex = (currentIndex + 1) % playlist.length;
+            await setupVideo(nextVideo, nextIndex);
+
             nextVideo.play().then(() => {
                 nextVideo.classList.remove('hidden');
                 nextVideo.classList.add('visible');
                 currentVideo.classList.remove('visible');
                 currentVideo.classList.add('hidden');
 
+                // cleanup previous blob URL after transition to free memory
                 setTimeout(() => {
-                    if (currentVideo.src.startsWith('blob:')) {
-                        URL.revokeObjectURL(currentVideo.src);
+                    const previousUrl = currentVideo.src;
+                    // If previousUrl is a blob URL we created, revoke it
+                    for (const [key, val] of blobUrlMap.entries()) {
+                        if (val === previousUrl) {
+                            URL.revokeObjectURL(val);
+                            blobUrlMap.delete(key);
+                            break;
+                        }
                     }
-                    currentVideo.src = "";
-                    currentVideo.load();
+
+                    try {
+                        currentVideo.src = "";
+                        currentVideo.load();
+                    } catch (e) {/* ignore */}
                 }, 1000);
 
                 currentIndex = (currentIndex + 1) % playlist.length;
-                const nextIndex = (currentIndex + 1) % playlist.length;
-                setupVideo(currentVideo, nextIndex);
+                // prepare following video
+                const followingIndex = (currentIndex + 1) % playlist.length;
+                setupVideo(currentVideo, followingIndex);
             }).catch(() => {
+                // if next video couldn't play, retry shortly
                 setTimeout(swapVideos, 2000);
             });
         }
 
         async function initPlayer() {
-            updateStatus("სისტემა იწყებს მუშაობას...");
+            // Start caching and play first video as blob so it works offline
             await setupVideo(videos[0], 0, true);
-            videos[0].play();
+            // preload next video as blob
             setupVideo(videos[1], 1);
+
             videos[0].onended = swapVideos;
             videos[1].onended = swapVideos;
-            setTimeout(checkOfflineReadiness, 3000);
+
+            // In the background ensure all playlist items are cached for offline playback
+            cacheEntirePlaylist();
+        }
+
+        async function cacheEntirePlaylist() {
+            try {
+                const cache = await caches.open(CACHE_NAME);
+                for (const url of playlist) {
+                    const request = new Request(url, {mode: 'cors', credentials: 'omit'});
+                    const matched = await cache.match(request);
+                    if (!matched) {
+                        try {
+                            const res = await fetch(request);
+                            if (res && (res.status === 200 || res.status === 206)) {
+                                await cache.put(request, res.clone());
+                            }
+                        } catch (e) { console.warn('Failed to fetch for caching', url, e); }
+                    }
+                }
+            } catch (e) {
+                console.warn('cacheEntirePlaylist failed', e);
+            }
         }
 
         window.onload = initPlayer;
 
+        // Register service worker for broader offline support
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('SW Registered'))
-                .catch(err => console.log('SW Registration failed', err));
+                .then(() => console.log('SW Registered'))
+                .catch(() => console.log('SW Registration failed'));
             });
         }
     </script>
